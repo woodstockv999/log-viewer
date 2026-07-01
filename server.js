@@ -1,5 +1,5 @@
 const express = require('express');
-const { execSync, spawn } = require('child_process');
+const { execSync, execFileSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -7,6 +7,11 @@ const os = require('os');
 const app = express();
 const PORT = 3008;
 const PM2_LOGS = path.join(os.homedir(), '.pm2', 'logs');
+const SAFE_APP_NAME = /^[a-zA-Z0-9_-]+$/;
+
+function tailFile(file, n, opts) {
+  return execFileSync('tail', ['-n', String(n), file], { encoding: 'utf8', ...opts });
+}
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -39,9 +44,8 @@ app.get('/api/status', (req, res) => {
 
       if (fs.existsSync(errFile)) {
         try {
-          const lines = execSync(`tail -n 200 "${errFile}"`, {
-            encoding: 'utf8', timeout: 2000, maxBuffer: 1024 * 1024,
-          }).split('\n').filter(Boolean);
+          const lines = tailFile(errFile, 200, { timeout: 2000, maxBuffer: 1024 * 1024 })
+            .split('\n').filter(Boolean);
           errLineCount = lines.length;
           lastError = lines[lines.length - 1]?.substring(0, 300) || null;
         } catch {}
@@ -93,6 +97,7 @@ app.get('/api/status', (req, res) => {
 // ── Log analysis ─────────────────────────────────────────
 app.get('/api/analyze/:app', (req, res) => {
   const name = req.params.app;
+  if (!SAFE_APP_NAME.test(name)) return res.status(400).json({ error: 'invalid app name' });
   const outFile = path.join(PM2_LOGS, `${name}-out.log`);
   const errFile = path.join(PM2_LOGS, `${name}-error.log`);
 
@@ -100,9 +105,7 @@ app.get('/api/analyze/:app', (req, res) => {
   const read = (file, n) => {
     if (!fs.existsSync(file)) return [];
     try {
-      return execSync(`tail -n ${n} "${file}"`, {
-        encoding: 'utf8', timeout: 3000, maxBuffer: 4 * 1024 * 1024,
-      }).split('\n').filter(Boolean);
+      return tailFile(file, n, { timeout: 3000, maxBuffer: 4 * 1024 * 1024 }).split('\n').filter(Boolean);
     } catch { return []; }
   };
 
@@ -132,6 +135,7 @@ app.get('/api/analyze/:app', (req, res) => {
 // ── Log SSE stream ────────────────────────────────────────
 app.get('/api/logs/:app', (req, res) => {
   const appName = req.params.app;
+  if (!SAFE_APP_NAME.test(appName)) return res.status(400).json({ error: 'invalid app name' });
   const lines = Math.min(parseInt(req.query.lines || '300'), 1000);
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -149,7 +153,7 @@ app.get('/api/logs/:app', (req, res) => {
   for (const [file, type] of [[outFile, 'out'], [errFile, 'err']]) {
     if (fs.existsSync(file)) {
       try {
-        execSync(`tail -n ${lines} "${file}"`, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 })
+        tailFile(file, lines, { maxBuffer: 4 * 1024 * 1024 })
           .split('\n').filter(Boolean)
           .forEach(line => send('log', { type, line, app: appName }));
       } catch {}
