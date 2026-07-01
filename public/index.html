@@ -38,14 +38,35 @@ body {
   overflow: hidden;
 }
 
+/* ═══ 階層パンくず（ポータル › アプリ名。BASEと同じ構成） ═══ */
+.crumb-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: .78rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.crumb {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--muted); text-decoration: none;
+  padding: 3px 7px; border-radius: 6px;
+  background: none; border: none; font: inherit; cursor: pointer;
+}
+.crumb:hover { background: var(--card); color: var(--text); }
+.crumb.current { color: var(--text); font-weight: 600; cursor: default; }
+.crumb-sep { color: var(--dim); font-size: .7rem; }
+.crumb-spacer { flex: 1; }
+
 /* ═══ HEADER ═══════════════════════════════════════════ */
 header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 0 16px;
-  padding-top: env(safe-area-inset-top);
-  height: calc(48px + env(safe-area-inset-top));
+  height: 48px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   flex-shrink: 0;
@@ -371,6 +392,12 @@ header {
 </head>
 <body>
 
+<div class="crumb-bar">
+  <a class="crumb" href="/" title="アプリ一覧へ戻る">🏠 ポータル</a>
+  <span class="crumb-sep">›</span>
+  <span class="crumb current">📜 ログビューア</span>
+  <span class="crumb-spacer"></span>
+</div>
 <header>
   <span class="hd-title">Log Viewer</span>
   <span class="hd-sep"></span>
