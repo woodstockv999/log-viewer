@@ -627,7 +627,7 @@ function buildLogPane(appName) {
   document.getElementById('log-pane').innerHTML = `
     <div id="analyze-panel" class="analyze-panel" hidden></div>
     <div class="toolbar">
-      <span class="app-title">${appName}</span>
+      <span class="app-title">${esc(appName)}</span>
       <div class="filter-group">
         <button class="btn ${filter==='all'?'active':''}" id="f-all" onclick="setFilter('all')">All</button>
         <button class="btn ${filter==='out'?'active':''}" id="f-out" onclick="setFilter('out')">out</button>
